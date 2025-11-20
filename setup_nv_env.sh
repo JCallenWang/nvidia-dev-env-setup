@@ -84,8 +84,8 @@ install_driver() {
 # ====================================================
 install_cuda() {
     log "Installing CUDA 13 keyring"
-    UBUNTU_VER=$(lsb_release -rs | sed 's/\\.//g')
-    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu$UBUNTU_VER/x86_64/cuda-keyring_1.1-1_all.deb
+    UBUNTU_VER=$(lsb_release -rs | tr -d '.\r')
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VER}/x86_64/cuda-keyring_1.1-1_all.deb
     sudo dpkg -i cuda-keyring_1.1-1_all.deb
     sudo apt update
 
@@ -190,8 +190,6 @@ if [[ "$1" == "uninstall" ]]; then
 fi
 
 echo "Usage: sudo ./nvidia_env_setup.sh [install|uninstall]"
-echo "if first deployed, give the script permission to execute by running this command:"
-echo "chmod +x setup_nvidia_env.sh"
 
 echo "Notes on error handling:"
 echo "- The script uses 'set -e' and 'set -o pipefail' to stop immediately on any command failure."
