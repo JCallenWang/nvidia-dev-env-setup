@@ -178,8 +178,6 @@ if [[ "$1" == "uninstall" ]]; then
 fi
 
 echo "Usage: sudo ./nvidia_env_setup.sh [install|uninstall]"
-echo "if first deployed, give the script permission to execute by running this command:"
-echo "chmod +x setup_nvidia_env.sh"
 
 echo "Notes on error handling:"
 echo "- The script uses 'set -e' and 'set -o pipefail' to stop immediately on any command failure."
