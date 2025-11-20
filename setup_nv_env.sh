@@ -133,28 +133,40 @@ $(lsb_release -cs) stable" | \
 # ====================================================
 install_toolkit() {
     log "Installing NVIDIA Container Toolkit"
+
+    # Remove old list to avoid duplicate entries
     sudo rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
 
-    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | \
-    sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    # Always use LC_ALL=C to avoid locale breaking sed/curl
+    export LC_ALL=C
 
-    curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    # --- Download and install key ---
+    curl -fsSL "https://nvidia.github.io/libnvidia-container/gpgkey" \
+        | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+    # --- Write source list (fail-proof version) ---
+    curl -fsSL "https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list" \
+        | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' \
+        | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list >/dev/null
 
     sudo apt update
 
-    VERSION=1.17.8-1
-    sudo apt install -y \
-        nvidia-container-toolkit=$VERSION \
-        nvidia-container-toolkit-base=$VERSION \
-        libnvidia-container-tools=$VERSION \
-        libnvidia-container1=$VERSION
+    # Version pinning (optional, can be removed)
+    VERSION="1.17.8-1"
 
+    sudo apt install -y \
+        nvidia-container-toolkit="$VERSION" \
+        nvidia-container-toolkit-base="$VERSION" \
+        libnvidia-container-tools="$VERSION" \
+        libnvidia-container1="$VERSION"
+
+    # Configure Docker runtime
     sudo nvidia-ctk runtime configure --runtime=docker
     sudo systemctl restart docker
+
     task_record "toolkit_1_17_8"
 }
+
 
 # ====================================================
 # Main
