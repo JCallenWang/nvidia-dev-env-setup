@@ -1,7 +1,9 @@
 # NVIDIA Developer Environment Auto Setup
 
+Prerequisite
+the script works on **Ubuntu Desktop OS**
+
 This repository contains a script to automatically install or uninstall NVIDIA development environment components:
-- **Ubuntu Desktop OS**
 - NVIDIA Driver 580
 - CUDA 13.x
 - Docker CE
