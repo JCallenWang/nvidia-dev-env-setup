@@ -53,8 +53,7 @@ uninstall_all() {
     sudo rm -rf /var/lib/docker /var/lib/containerd || true
 
     log "Removing NVIDIA Container Toolkit"
-    sudo apt purge -y nvidia-container-toolkit* || true
-    sudo rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list || true
+    uninstall_toolkit
 
     log " autoremove cleanup"
     sudo apt autoremove -y
@@ -62,6 +61,32 @@ uninstall_all() {
     log "Clean complete"
     rm -f "$INSTALL_RECORD"
 }
+uninstall_toolkit() {
+    # Remove APT source list
+    sudo rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+    # Remove keyring
+    sudo rm -f /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+    # Purge all related packages
+    sudo apt purge -y \
+        nvidia-container-toolkit \
+        nvidia-container-toolkit-base \
+        libnvidia-container-tools \
+        libnvidia-container1
+
+    # Clean dependencies
+    sudo apt autoremove -y
+
+    # Optional: remove runtime config from Docker
+    sudo nvidia-ctk runtime configure --runtime=docker --remove || true
+    sudo systemctl restart docker || true
+
+    task_record_remove "toolkit_1_17_8"
+
+    log "NVIDIA Container Toolkit fully uninstalled."
+}
+
 
 # ====================================================
 # Install Driver 580
