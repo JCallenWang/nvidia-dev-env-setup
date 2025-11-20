@@ -1,2 +1,21 @@
-# nvidia-dev-env-setup
-Automated NVIDIA development environment setup script (Driver, CUDA, Docker, Toolkit)
+# NVIDIA Developer Environment Auto Setup
+
+This repository contains a script to automatically install or uninstall NVIDIA development environment components:
+- NVIDIA Driver 580
+- CUDA 13.x
+- Docker CE
+- NVIDIA Container Toolkit 1.17.8
+
+## Usage
+
+After cloning the repository:
+
+```bash
+# Change to repository directory
+cd nvidia-dev-env-setup
+
+# Install environment
+sudo bash setup_nvidia_env.sh install
+
+# Uninstall environment
+sudo bash setup_nvidia_env.sh uninstall
