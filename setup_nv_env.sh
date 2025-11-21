@@ -110,6 +110,10 @@ install_driver() {
 install_cuda() {
     log "Installing CUDA 13 keyring"
     UBUNTU_VER=$(lsb_release -rs | tr -d '.\r')
+    # Cap Ubuntu version at 2404 for CUDA repo compatibility
+    if [ "$UBUNTU_VER" -gt "2404" ]; then
+        UBUNTU_VER="2404"
+    fi
     wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VER}/x86_64/cuda-keyring_1.1-1_all.deb
     sudo dpkg -i cuda-keyring_1.1-1_all.deb
     sudo apt update
