@@ -20,6 +20,7 @@ sudo bash setup_nv_env.sh install
 
 # Uninstall environment
 sudo bash setup_nv_env.sh uninstall
+```
 
 ## Logs
 
