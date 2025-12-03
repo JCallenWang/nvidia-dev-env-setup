@@ -14,7 +14,7 @@
 set -e
 set -o pipefail
 
-LOG_DIR="/var/log/nvidia_env_setup"
+LOG_DIR="./logs"
 LOG_FILE="$LOG_DIR/install.log"
 INSTALL_RECORD="$LOG_DIR/installed.list"
 
@@ -61,7 +61,6 @@ uninstall_all() {
     sudo apt autoremove -y
 
     log "Clean complete"
-    rm -f "$INSTALL_RECORD"
 }
 uninstall_toolkit() {
     # Purge all related packages
@@ -83,8 +82,6 @@ uninstall_toolkit() {
     # Optional: remove runtime config from Docker
     sudo nvidia-ctk runtime configure --runtime=docker --remove || true
     sudo systemctl restart docker || true
-
-    task_record_remove "toolkit_1_17_8"
 
     log "NVIDIA Container Toolkit fully uninstalled."
 }
@@ -226,7 +223,7 @@ if [[ "$1" == "uninstall" ]]; then
     exit 0
 fi
 
-echo "Usage: sudo ./nvidia_env_setup.sh [install|uninstall]"
+echo "Usage: sudo ./setup_nv_env.sh [install|uninstall]"
 
 echo "Notes on error handling:"
 echo "- The script uses 'set -e' and 'set -o pipefail' to stop immediately on any command failure."
