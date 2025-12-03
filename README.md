@@ -16,7 +16,7 @@ After cloning the repository:
 cd nvidia-dev-env-setup
 
 # Install environment
-sudo bash setup_nvidia_env.sh install
+sudo bash setup_nv_env.sh install
 
 # Uninstall environment
-sudo bash setup_nvidia_env.sh uninstall
+sudo bash setup_nv_env.sh uninstall
