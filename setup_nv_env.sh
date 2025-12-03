@@ -208,7 +208,13 @@ if [[ "$1" == "install" ]]; then
     log "Starting NVIDIA Environment Setup"
 
     install_driver
-    install_cuda
+    
+    if [[ "$2" == "--no-cuda" ]]; then
+        log "Skipping CUDA Toolkit installation (--no-cuda flag detected)"
+    else
+        install_cuda
+    fi
+
     install_docker
     install_toolkit
 
@@ -222,7 +228,7 @@ if [[ "$1" == "uninstall" ]]; then
     exit 0
 fi
 
-echo "Usage: sudo ./setup_nv_env.sh [install|uninstall]"
+echo "Usage: sudo ./setup_nv_env.sh [install|uninstall] [--no-cuda]"
 
 echo "Notes on error handling:"
 echo "- The script uses 'set -e' and 'set -o pipefail' to stop immediately on any command failure."
