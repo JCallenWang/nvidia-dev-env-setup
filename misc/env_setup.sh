@@ -62,10 +62,11 @@ echo "Running install..."
 sudo bash setup_nv_env.sh install
 
 # 5. Cleanup repository
-cd ..
-if [ -d "$DIR_NAME" ]; then
-    echo "Removing repository directory '$DIR_NAME'..."
-    sudo rm -rf "$DIR_NAME"
-fi
+# Repository is preserved to keep logs and scripts for future use.
+# cd ..
+# if [ -d "$DIR_NAME" ]; then
+#     echo "Removing repository directory '$DIR_NAME'..."
+#     sudo rm -rf "$DIR_NAME"
+# fi
 
 echo "Setup completed successfully."

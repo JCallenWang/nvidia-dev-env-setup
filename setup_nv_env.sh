@@ -14,7 +14,7 @@
 set -e
 set -o pipefail
 
-LOG_DIR="/var/log/nvidia_env_setup"
+LOG_DIR="./logs"
 LOG_FILE="$LOG_DIR/install.log"
 INSTALL_RECORD="$LOG_DIR/installed.list"
 
@@ -51,6 +51,8 @@ uninstall_all() {
     log "Removing Docker"
     sudo apt purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
     sudo rm -rf /var/lib/docker /var/lib/containerd || true
+    sudo rm -f /etc/apt/keyrings/docker.gpg
+    sudo rm -f /etc/apt/sources.list.d/docker.list
 
     log "Removing NVIDIA Container Toolkit"
     uninstall_toolkit
@@ -59,15 +61,8 @@ uninstall_all() {
     sudo apt autoremove -y
 
     log "Clean complete"
-    rm -f "$INSTALL_RECORD"
 }
 uninstall_toolkit() {
-    # Remove APT source list
-    sudo rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
-
-    # Remove keyring
-    sudo rm -f /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-
     # Purge all related packages
     sudo apt purge -y \
         nvidia-container-toolkit \
@@ -75,14 +70,18 @@ uninstall_toolkit() {
         libnvidia-container-tools \
         libnvidia-container1
 
+    # Remove APT source list
+    sudo rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+    # Remove keyring
+    sudo rm -f /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
     # Clean dependencies
     sudo apt autoremove -y
 
     # Optional: remove runtime config from Docker
     sudo nvidia-ctk runtime configure --runtime=docker --remove || true
     sudo systemctl restart docker || true
-
-    task_record_remove "toolkit_1_17_8"
 
     log "NVIDIA Container Toolkit fully uninstalled."
 }
@@ -153,8 +152,8 @@ $(lsb_release -cs) stable" | \
     sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     task_record "docker"
 
-	log "Cleaning Docker GPG key (keep rop list for future udpate)"
-	sudo rm -f /etc/apt/keyrings/docker.gpg
+    log "Adding current user to docker group"
+    sudo usermod -aG docker "${SUDO_USER:-$USER}"
 }
 
 # ====================================================
@@ -192,6 +191,12 @@ install_toolkit() {
     # Configure Docker runtime
     sudo nvidia-ctk runtime configure --runtime=docker
     sudo systemctl restart docker
+
+    log "Verifying NVIDIA Container Toolkit installation"
+    if ! nvidia-ctk --version; then
+        echo "Error: NVIDIA Container Toolkit install failed"
+        exit 1
+    fi
 
     task_record "toolkit_1_17_8"
 }
