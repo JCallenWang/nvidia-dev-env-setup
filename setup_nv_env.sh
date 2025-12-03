@@ -41,24 +41,28 @@ trap 'handle_error $LINENO' ERR
 # Uninstall Everything
 # ====================================================
 uninstall_all() {
-    log "Removing NVIDIA Drivers"
-    sudo apt purge -y nvidia-* || true
-
+    log "Fixing broken dependencies (if any)..."
+    sudo apt --fix-broken install -y || true
+    
+    log "Removing NVIDIA Drivers and Libraries"
+    sudo apt purge -y nvidia-* libnvidia-* || true
+    
     log "Removing CUDA Toolkit"
-    sudo apt purge -y cuda-* libcublas* libcusparse* libnccl* || true
+    sudo apt purge -y cuda* libcublas* libcusparse* libnccl* || true
     sudo rm -rf /usr/local/cuda* || true
-
+    
     log "Removing Docker"
     sudo apt purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
-    sudo rm -rf /var/lib/docker /var/lib/containerd || true
+    sudo rm -rf /var/lib/docker /var/lib/containerd /etc/docker || true
     sudo rm -f /etc/apt/keyrings/docker.gpg
     sudo rm -f /etc/apt/sources.list.d/docker.list
-
+    
     log "Removing NVIDIA Container Toolkit"
     uninstall_toolkit
-
+    sudo rm -rf /etc/nvidia-container-runtime || true
+    
     log " autoremove cleanup"
-    sudo apt autoremove -y
+    sudo apt autoremove --purge -y || true
     
 }
 uninstall_toolkit() {
@@ -67,20 +71,16 @@ uninstall_toolkit() {
         nvidia-container-toolkit \
         nvidia-container-toolkit-base \
         libnvidia-container-tools \
-        libnvidia-container1
-
+        libnvidia-container1 || true
+    
     # Remove APT source list
     sudo rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
-
+   
     # Remove keyring
     sudo rm -f /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-
+    
     # Clean dependencies
-    sudo apt autoremove -y
-
-    # Optional: remove runtime config from Docker
-    sudo nvidia-ctk runtime configure --runtime=docker --remove || true
-    sudo systemctl restart docker || true
+    sudo apt autoremove --purge -y || true
 
     log "NVIDIA Container Toolkit fully uninstalled."
 }
@@ -92,11 +92,11 @@ uninstall_toolkit() {
 install_driver() {
     log "Installing dependencies"
     sudo apt install -y linux-headers-$(uname -r) build-essential dkms software-properties-common
-
+    
     log "Adding graphics drivers PPA"
     sudo add-apt-repository -y ppa:graphics-drivers/ppa
     sudo apt update
-
+    
     log "Installing NVIDIA Driver 580-open"
     sudo apt install -y nvidia-driver-580-open
     task_record "driver_580"
@@ -115,11 +115,11 @@ install_cuda() {
     wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VER}/x86_64/cuda-keyring_1.1-1_all.deb
     sudo dpkg -i cuda-keyring_1.1-1_all.deb
     sudo apt update
-
+    
     log "Installing CUDA Toolkit 13.x"
     sudo apt install -y cuda-toolkit-13-0
     task_record "cuda13"
-
+    
     log "Configuring CUDA environment variables"
     sudo bash -c 'cat > /etc/profile.d/cuda.sh <<EOF
 export CUDA_HOME=/usr/local/cuda
@@ -138,19 +138,19 @@ install_docker() {
     log "Setting up Docker repo"
     sudo apt install -y ca-certificates curl gnupg lsb-release
     sudo install -m 0755 -d /etc/apt/keyrings
-
+    
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-    sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
+    sudo gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
+    
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
 https://download.docker.com/linux/ubuntu \
 $(lsb_release -cs) stable" | \
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
+    
     sudo apt update
     sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     task_record "docker"
-
+    
     log "Adding current user to docker group"
     sudo usermod -aG docker "${SUDO_USER:-$USER}"
 }
@@ -160,22 +160,22 @@ $(lsb_release -cs) stable" | \
 # ====================================================
 install_toolkit() {
     log "Installing NVIDIA Container Toolkit"
-
+    
     # Remove old list to avoid duplicate entries
     sudo rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
-
+    
     # Always use LC_ALL=C to avoid locale breaking sed/curl
     export LC_ALL=C
-
+    
     # --- Download and install key ---
     curl -fsSL "https://nvidia.github.io/libnvidia-container/gpgkey" \
-        | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-
+        | sudo gpg --dearmor --yes -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    
     # --- Write source list (fail-proof version) ---
     curl -fsSL "https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list" \
         | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' \
         | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list >/dev/null
-
+    
     sudo apt update
 
     # Version pinning (optional, can be removed)
