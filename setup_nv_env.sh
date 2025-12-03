@@ -59,8 +59,7 @@ uninstall_all() {
 
     log " autoremove cleanup"
     sudo apt autoremove -y
-
-    log "Clean complete"
+    
 }
 uninstall_toolkit() {
     # Purge all related packages

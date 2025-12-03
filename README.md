@@ -20,3 +20,11 @@ sudo bash setup_nv_env.sh install
 
 # Uninstall environment
 sudo bash setup_nv_env.sh uninstall
+
+## Logs
+
+Installation and uninstallation logs are stored in the `logs/` directory within the repository.
+- `logs/install.log`: Detailed log of operations.
+- `logs/installed.list`: List of successfully installed components.
+
+These files and the repository itself are preserved after uninstallation.
