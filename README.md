@@ -1,5 +1,5 @@
 # NVIDIA Developer Environment Auto Setup
-the script works on **Ubuntu Desktop OS**
+the script works on **Ubuntu OS** (tested on 2404 server & desktop)
 
 This repository contains a script to automatically install or uninstall NVIDIA development environment components:
 - NVIDIA Driver 580
