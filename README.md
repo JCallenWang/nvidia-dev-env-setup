@@ -7,19 +7,26 @@ This repository contains a script to automatically install or uninstall NVIDIA d
 - Docker CE
 - NVIDIA Container Toolkit 1.17.8
 
+## Compatibility
+- **Supported OS:** Ubuntu 22.04 LTS, Ubuntu 24.04 LTS
+- **Unsupported:** Ubuntu 20.04 (too old), Ubuntu 25.xx (too new/unstable)
+- **Architecture:** x86_64 only
+
 ## Usage
 
-After cloning the repository:
-
+### Install
 ```bash
-# Change to repository directory
-cd nvidia-dev-env-setup
+chmod +x setup_nv_env.sh
+sudo ./setup_nv_env.sh install
+```
 
-# Install environment
-sudo bash setup_nv_env.sh install
+**Options:**
+- `--no-cuda`: Skips installing the CUDA Toolkit (useful for Docker-only workflows).
+- `--force`: Bypasses the OS version check (use at your own risk).
 
-# Uninstall environment
-sudo bash setup_nv_env.sh uninstall
+### Uninstall
+```bash
+sudo ./setup_nv_env.sh uninstall
 ```
 
 ## Logs

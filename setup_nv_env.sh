@@ -207,9 +207,34 @@ install_toolkit() {
 if [[ "$1" == "install" ]]; then
     log "Starting NVIDIA Environment Setup"
 
+    # --- OS Version Check ---
+    UBUNTU_VER=$(lsb_release -rs | tr -d '.\r')
+    FORCE_INSTALL=false
+    NO_CUDA=false
+
+    # Parse flags
+    for arg in "$@"; do
+        if [[ "$arg" == "--force" ]]; then FORCE_INSTALL=true; fi
+        if [[ "$arg" == "--no-cuda" ]]; then NO_CUDA=true; fi
+    done
+
+    # Strict Version Check (Allow 22.04 and 24.04 only)
+    if [[ "$UBUNTU_VER" != "2204" && "$UBUNTU_VER" != "2404" ]]; then
+        if [[ "$FORCE_INSTALL" == "true" ]]; then
+            log "WARNING: Unsupported Ubuntu version ($UBUNTU_VER) detected."
+            log "Continuing because --force was specified. Expect issues."
+            sleep 3
+        else
+            echo "ERROR: This script officially supports only Ubuntu 22.04 LTS and 24.04 LTS."
+            echo "Detected version: $(lsb_release -rs)"
+            echo "Use '--force' to override this check at your own risk."
+            exit 1
+        fi
+    fi
+
     install_driver
     
-    if [[ "$2" == "--no-cuda" ]]; then
+    if [[ "$NO_CUDA" == "true" ]]; then
         log "Skipping CUDA Toolkit installation (--no-cuda flag detected)"
     else
         install_cuda
@@ -228,7 +253,7 @@ if [[ "$1" == "uninstall" ]]; then
     exit 0
 fi
 
-echo "Usage: sudo ./setup_nv_env.sh [install|uninstall] [--no-cuda]"
+echo "Usage: sudo ./setup_nv_env.sh [install|uninstall] [--no-cuda] [--force]"
 
 echo "Notes on error handling:"
 echo "- The script uses 'set -e' and 'set -o pipefail' to stop immediately on any command failure."
