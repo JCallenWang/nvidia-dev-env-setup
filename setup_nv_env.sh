@@ -1,3 +1,4 @@
+#!/bin/bash
 # =============================================
 # NVIDIA Developer Environment Auto Setup Script
 # Components:
@@ -64,6 +65,8 @@ uninstall_all() {
     log " autoremove cleanup"
     sudo apt autoremove --purge -y || true
     
+    log "Removing logs directory"
+    rm -rf "$LOG_DIR" || true
 }
 uninstall_toolkit() {
     # Purge all related packages
@@ -89,15 +92,40 @@ uninstall_toolkit() {
 # ====================================================
 # Install Driver 580
 # ====================================================
+# ====================================================
+# Setup NVIDIA Repository (Shared)
+# ====================================================
+setup_nvidia_repo() {
+    log "Setting up NVIDIA Official Repository"
+    UBUNTU_VER=$(lsb_release -rs | tr -d '.\r')
+    # Cap Ubuntu version at 2404 for repo compatibility
+    if [ "$UBUNTU_VER" -gt "2404" ]; then
+        UBUNTU_VER="2404"
+    fi
+    
+    # Remove PPA if present to avoid conflicts
+    if grep -q "graphics-drivers/ppa" /etc/apt/sources.list /etc/apt/sources.list.d/* 2>/dev/null; then
+        log "Removing graphics-drivers PPA..."
+        sudo add-apt-repository --remove -y ppa:graphics-drivers/ppa || true
+    fi
+
+    # Install keyring
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VER}/x86_64/cuda-keyring_1.1-1_all.deb
+    sudo dpkg -i cuda-keyring_1.1-1_all.deb
+    sudo apt update
+    rm -f cuda-keyring_1.1-1_all.deb
+}
+
+# ====================================================
+# Install Driver 580
+# ====================================================
 install_driver() {
     log "Installing dependencies"
     sudo apt install -y linux-headers-$(uname -r) build-essential dkms software-properties-common
+
+    setup_nvidia_repo
     
-    log "Adding graphics drivers PPA"
-    sudo add-apt-repository -y ppa:graphics-drivers/ppa
-    sudo apt update
-    
-    log "Installing NVIDIA Driver 580-open"
+    log "Installing NVIDIA Driver 580-open (from Official Repo)"
     sudo apt install -y nvidia-driver-580-open
     task_record "driver_580"
 }
@@ -106,15 +134,10 @@ install_driver() {
 # Install CUDA 13
 # ====================================================
 install_cuda() {
-    log "Installing CUDA 13 keyring"
-    UBUNTU_VER=$(lsb_release -rs | tr -d '.\r')
-    # Cap Ubuntu version at 2404 for CUDA repo compatibility
-    if [ "$UBUNTU_VER" -gt "2404" ]; then
-        UBUNTU_VER="2404"
+    # Repo is already set up by install_driver, but ensure it's there if run standalone
+    if ! dpkg -l | grep -q cuda-keyring; then
+        setup_nvidia_repo
     fi
-    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBUNTU_VER}/x86_64/cuda-keyring_1.1-1_all.deb
-    sudo dpkg -i cuda-keyring_1.1-1_all.deb
-    sudo apt update
     
     log "Installing CUDA Toolkit 13.x"
     sudo apt install -y cuda-toolkit-13-0
@@ -126,9 +149,6 @@ export CUDA_HOME=/usr/local/cuda
 export PATH=/usr/local/cuda/bin:\$PATH
 export LD_LIBRARY_PATH=/usr/local/cuda/lib64:\$LD_LIBRARY_PATH
 EOF'
-
-	log "Cleaning keyring deb"
-	rm -f cuda-keyring_1.1-1_all.deb
 }
 
 # ====================================================
@@ -167,12 +187,28 @@ install_toolkit() {
     # Always use LC_ALL=C to avoid locale breaking sed/curl
     export LC_ALL=C
     
-    # --- Download and install key ---
-    curl -fsSL "https://nvidia.github.io/libnvidia-container/gpgkey" \
-        | sudo gpg --dearmor --yes -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-    
+    # --- Download and install key (with retry) ---
+    local max_retries=5
+    local count=0
+    local success=false
+
+    while [ $count -lt $max_retries ]; do
+        if curl -fsSL -4 "https://nvidia.github.io/libnvidia-container/gpgkey" | sudo gpg --dearmor --yes -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg; then
+            success=true
+            break
+        fi
+        log "Download failed (Attempt $((count+1))/$max_retries). Retrying in 5 seconds..."
+        sleep 5
+        ((++count))
+    done
+
+    if [ "$success" = false ]; then
+        echo "Error: Failed to download NVIDIA GPG key after $max_retries attempts."
+        exit 1
+    fi
+
     # --- Write source list (fail-proof version) ---
-    curl -fsSL "https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list" \
+    curl -fsSL -4 "https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list" \
         | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' \
         | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list >/dev/null
     
